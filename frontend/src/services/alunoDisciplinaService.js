@@ -12,8 +12,13 @@ const desalocarDisciplina = (alunoId, disciplinaId) => {
   return api.post("/desalocar", { alunoId, disciplinaId });
 };
 
+const getAlunosDaDisciplina = (disciplinaId) => {
+  return api.get(`/disciplinas/${disciplinaId}/alunos`);
+};
+
 export const alunoDisciplinaService = {
   getAlunoByMatricula,
   alocarDisciplina,
   desalocarDisciplina,
+  getAlunosDaDisciplina,
 };

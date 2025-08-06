@@ -95,14 +95,17 @@ export default function Alunos() {
 
   const handleSave = async () => {
     if (!editModalState.data) return;
+
     const { _id, ...dataToUpdate } = editModalState.data;
+
     try {
       await alunoService.updateAluno(_id, dataToUpdate);
       Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
       setEditModalState({ isOpen: false, data: null });
       loadAlunos();
     } catch (err) {
-      Swal.fire("Erro!", "Erro ao salvar alterações.", "error");
+      const errorMsg = err.response?.data?.error?.[0]?.msg || "Erro ao salvar alterações.";
+      Swal.fire("Erro!", errorMsg, "error");
     }
   };
 

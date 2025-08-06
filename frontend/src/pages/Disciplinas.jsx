@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { disciplinaService } from "../services/disciplinaService";
+import { alunoDisciplinaService } from "../services/alunoDisciplinaService";
 import Swal from "sweetalert2";
 import Table from "../components/Table";
 import Button from "../components/Button";
@@ -16,7 +17,8 @@ export default function Disciplinas() {
   const navigate = useNavigate();
   const [disciplinas, setDisciplinas] = useState([]);
   const [form, setForm] = useState(initialFormState);
-  const [modalState, setModalState] = useState({ isOpen: false, data: null });
+  const [editModalState, setEditModalState] = useState({ isOpen: false, data: null });
+  const [viewModalState, setViewModalState] = useState({ isOpen: false, data: null, alunos: [] });
 
   const loadDisciplinas = async () => {
     try {
@@ -38,7 +40,7 @@ export default function Disciplinas() {
 
   const handleModalChange = (e) => {
     const { name, value } = e.target;
-    setModalState((prev) => ({
+    setEditModalState((prev) => ({
       ...prev,
       data: { ...prev.data, [name]: value },
     }));
@@ -57,7 +59,16 @@ export default function Disciplinas() {
   };
 
   const handleEdit = (disciplina) => {
-    setModalState({ isOpen: true, data: disciplina });
+    setEditModalState({ isOpen: true, data: disciplina });
+  };
+
+  const handleView = async (disciplina) => {
+    try {
+        const res = await alunoDisciplinaService.getAlunosDaDisciplina(disciplina._id);
+        setViewModalState({ isOpen: true, data: disciplina, alunos: res.data.map(item => item.aluno) });
+    } catch (err) {
+        Swal.fire("Erro!", "Não foi possível carregar os alunos da disciplina.", "error");
+    }
   };
 
   const handleDelete = async (id) => {
@@ -79,12 +90,12 @@ export default function Disciplinas() {
   };
 
   const handleSave = async () => {
-    if (!modalState.data) return;
-    const { _id, ...dataToUpdate } = modalState.data;
+    if (!editModalState.data) return;
+    const { _id, ...dataToUpdate } = editModalState.data;
     try {
       await disciplinaService.updateDisciplina(_id, dataToUpdate);
       Swal.fire("Atualizada!", "Dados alterados com sucesso.", "success");
-      setModalState({ isOpen: false, data: null });
+      setEditModalState({ isOpen: false, data: null });
       loadDisciplinas();
     } catch (err) {
       Swal.fire("Erro!", "Erro ao salvar alterações.", "error");
@@ -129,32 +140,50 @@ export default function Disciplinas() {
       <Table
         columns={columns}
         data={disciplinas}
+        onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
 
       <Modal
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState({ isOpen: false, data: null })}
+        isOpen={editModalState.isOpen}
+        onClose={() => setEditModalState({ isOpen: false, data: null })}
         onConfirm={handleSave}
         title="Editar Disciplina"
       >
-        {modalState.data && (
+        {editModalState.data && (
           <div className="space-y-4">
             <InputField
               label="Nome da Disciplina"
               name="nome"
-              value={modalState.data.nome}
+              value={editModalState.data.nome}
               onChange={handleModalChange}
             />
             <InputField
               label="Carga Horária"
               name="cargaHoraria"
               type="number"
-              value={modalState.data.cargaHoraria}
+              value={editModalState.data.cargaHoraria}
               onChange={handleModalChange}
             />
           </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={viewModalState.isOpen}
+        onClose={() => setViewModalState({ isOpen: false, data: null, alunos: [] })}
+        onConfirm={() => setViewModalState({ isOpen: false, data: null, alunos: [] })}
+        title={`Alunos em ${viewModalState.data?.nome}`}
+      >
+        {viewModalState.alunos.length > 0 ? (
+            <ul>
+                {viewModalState.alunos.map(aluno => (
+                    <li key={aluno._id}>{aluno.nome} (Matrícula: {aluno.matricula})</li>
+                ))}
+            </ul>
+        ) : (
+            <p>Nenhum aluno matriculado nesta disciplina.</p>
         )}
       </Modal>
     </div>

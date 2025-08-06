@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { alunoDisciplinaService } from "../services/alunoDisciplinaService";
-import { alunoService } from "../services/alunoService";
-import Swal from "sweetalert2";
 import InputField from "../components/InputField";
 import Button from "../components/Button";
 import Table from "../components/Table";
-import Modal from "../components/Modal";
 
 export default function ConsultaMatricula() {
   const [matricula, setMatricula] = useState("");
@@ -14,8 +11,6 @@ export default function ConsultaMatricula() {
   const [disciplinas, setDisciplinas] = useState([]);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
-  const [modalState, setModalState] = useState({ isOpen: false, data: null });
-  const navigate = useNavigate();
 
   const handleConsultar = async () => {
     if (!matricula) {
@@ -35,49 +30,6 @@ export default function ConsultaMatricula() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleEdit = () => {
-    setModalState({ isOpen: true, data: aluno });
-  };
-
-  const handleDelete = async () => {
-    const { isConfirmed } = await Swal.fire({
-      title: "Excluir aluno?",
-      text: "Essa ação não poderá ser desfeita!",
-      icon: "warning",
-      showCancelButton: true,
-    });
-    if (isConfirmed) {
-      try {
-        await alunoService.deleteAluno(aluno._id);
-        Swal.fire("Excluído!", "Aluno removido com sucesso.", "success");
-        navigate("/dashboard");
-      } catch (err) {
-        Swal.fire("Erro!", "Erro ao excluir aluno.", "error");
-      }
-    }
-  };
-
-  const handleSave = async () => {
-    if (!modalState.data) return;
-    const { _id, ...dataToUpdate } = modalState.data;
-    try {
-      const res = await alunoService.updateAluno(_id, dataToUpdate);
-      Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
-      setAluno(res.data.data);
-      setModalState({ isOpen: false, data: null });
-    } catch (err) {
-      Swal.fire("Erro!", "Erro ao salvar alterações.", "error");
-    }
-  };
-
-  const handleModalChange = (e) => {
-    const { name, value } = e.target;
-    setModalState((prev) => ({
-      ...prev,
-      data: { ...prev.data, [name]: value },
-    }));
   };
 
   const alunoColumns = [
@@ -118,8 +70,6 @@ export default function ConsultaMatricula() {
             <Table
               columns={alunoColumns}
               data={[aluno]}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
             />
           </>
         )}
@@ -137,36 +87,6 @@ export default function ConsultaMatricula() {
           </Link>
         </div>
       </div>
-
-      <Modal
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState({ isOpen: false, data: null })}
-        onConfirm={handleSave}
-        title="Editar Aluno"
-      >
-        {modalState.data && (
-          <div className="space-y-4">
-            <InputField
-              label="Endereço"
-              name="endereco"
-              value={modalState.data.endereco}
-              onChange={handleModalChange}
-            />
-            <InputField
-              label="Telefone"
-              name="telefone"
-              value={modalState.data.telefone}
-              onChange={handleModalChange}
-            />
-             <InputField
-              label="E-mail"
-              name="email"
-              value={modalState.data.email}
-              onChange={handleModalChange}
-            />
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }

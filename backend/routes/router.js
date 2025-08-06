@@ -32,6 +32,7 @@ router.delete('/disciplinas/:id', auth, disciplinaController.remove);
 router.post('/alocar', auth, alunoDisciplinaController.alocar);
 router.post('/desalocar', auth, alunoDisciplinaController.desalocar);
 router.get('/alunos/:id/disciplina', auth, alunoDisciplinaController.getDisciplinasDoAluno);
+router.get('/disciplinas/:id/alunos', auth, alunoDisciplinaController.getAlunosDaDisciplina);
 router.get('/matricula/:matricula', auth, alunoDisciplinaController.getDisciplinasPorMatricula);
 
 module.exports = router;
