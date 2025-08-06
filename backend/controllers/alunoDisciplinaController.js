@@ -74,6 +74,7 @@ exports.getDisciplinasPorMatricula = async (req, res) => {
         email: aluno.email,
       },
       disciplinas: disciplinas.map((d) => ({
+        _id: d.disciplina._id,
         nome: d.disciplina.nome,
         cargaHoraria: d.disciplina.cargaHoraria,
       })),
