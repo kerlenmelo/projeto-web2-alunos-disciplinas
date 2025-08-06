@@ -95,8 +95,7 @@ export default function Alunos() {
 
   const handleSave = async () => {
     if (!editModalState.data) return;
-    const { _id, endereco, telefone, email } = editModalState.data;
-    const dataToUpdate = { endereco, telefone, email };
+    const { _id, ...dataToUpdate } = editModalState.data;
     try {
       await alunoService.updateAluno(_id, dataToUpdate);
       Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
