@@ -130,7 +130,7 @@ export default function Disciplinas() {
         />
         <div className="md:col-span-3 flex justify-end gap-4 mt-2">
            <Button type="button" className="secondary" onClick={() => navigate("/dashboard")}>
-            Cancelar
+            Voltar
           </Button>
           <Button type="submit" className="success">
             Criar Disciplina

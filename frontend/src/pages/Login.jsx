@@ -50,7 +50,7 @@ export default function Login() {
           onChange={handleChange}
           required
         />
-        <Button type="submit" className="success w-full">
+        <Button type="submit" className="bg-green-500 text-white w-full py-2 px-4 rounded hover:bg-green-700">
           Login
         </Button>
       </form>

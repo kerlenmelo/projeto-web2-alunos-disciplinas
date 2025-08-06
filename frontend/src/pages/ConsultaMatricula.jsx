@@ -26,7 +26,7 @@ export default function ConsultaMatricula() {
       setAluno(res.data.aluno);
       setDisciplinas(res.data.disciplinas);
     } catch (error) {
-      setErro("Aluno não encontrado ou erro ao buscar disciplinas.");
+      setErro("Aluno não encontrado.");
     } finally {
       setLoading(false);
     }
