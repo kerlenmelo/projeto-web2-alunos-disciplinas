@@ -73,11 +73,13 @@ exports.getDisciplinasPorMatricula = async (req, res) => {
         curso: aluno.curso,
         email: aluno.email,
       },
-      disciplinas: disciplinas.map((d) => ({
-        _id: d.disciplina._id,
-        nome: d.disciplina.nome,
-        cargaHoraria: d.disciplina.cargaHoraria,
-      })),
+      disciplinas: disciplinas
+        .filter((d) => d.disciplina) // Filter out null disciplines
+        .map((d) => ({
+          _id: d.disciplina._id,
+          nome: d.disciplina.nome,
+          cargaHoraria: d.disciplina.cargaHoraria,
+        })),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
