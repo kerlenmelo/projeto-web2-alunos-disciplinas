@@ -1,294 +1,235 @@
 import { useEffect, useState } from "react";
-import api from "../api/api";
-import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
+import { alunoService } from "../services/alunoService";
+import Swal from "sweetalert2";
+import Table from "../components/Table";
+import Button from "../components/Button";
+import Modal from "../components/Modal";
+import InputField from "../components/InputField";
+
+const initialFormState = {
+  nome: "",
+  endereco: "",
+  dataNascimento: "",
+  cpf: "",
+  matricula: "",
+  telefone: "",
+  email: "",
+  curso: "",
+};
 
 export default function Alunos() {
   const navigate = useNavigate();
-
   const [alunos, setAlunos] = useState([]);
-  const [form, setForm] = useState({
-    nome: "",
-    endereco: "",
-    dataNascimento: "",
-    cpf: "",
-    matricula: "",
-    telefone: "",
-    email: "",
-    curso: "",
-  });
+  const [form, setForm] = useState(initialFormState);
+  const [editModalState, setEditModalState] = useState({ isOpen: false, data: null });
+  const [viewModalState, setViewModalState] = useState({ isOpen: false, data: null });
 
-  const [editando, setEditando] = useState(null);
-  const [editData, setEditData] = useState({
-    endereco: "",
-    telefone: "",
-    email: "",
-  });
-
-  const camposObrigatorios = ["nome", "cpf", "matricula", "email", "curso"];
-
-  const carregarAlunos = async () => {
+  const loadAlunos = async () => {
     try {
-      const res = await api.get("/alunos");
+      const res = await alunoService.getAlunos();
       setAlunos(res.data.data);
     } catch (err) {
       Swal.fire("Erro!", "Não foi possível carregar os alunos.", "error");
     }
   };
 
-  const validarCampos = () => {
-    for (let campo of camposObrigatorios) {
-      if (!form[campo].trim()) {
-        Swal.fire(
-          "Campo obrigatório",
-          `Preencha o campo "${campo}"`,
-          "warning"
-        );
-        return false;
-      }
-    }
+  useEffect(() => {
+    loadAlunos();
+  }, []);
 
-    // Validações específicas
-    if (!/^\d{11}$/.test(form.cpf)) {
-      Swal.fire(
-        "CPF inválido",
-        "O CPF deve conter 11 dígitos numéricos.",
-        "warning"
-      );
-      return false;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(form.email)) {
-      Swal.fire("E-mail inválido", "Informe um e-mail válido.", "warning");
-      return false;
-    }
-
-    if (form.telefone && !/^\(\d{2}\) \d{4,5}-\d{4}$/.test(form.telefone)) {
-      Swal.fire("Telefone inválido", "Formato: (XX) XXXXX-XXXX", "warning");
-      return false;
-    }
-
-    if (form.dataNascimento && isNaN(Date.parse(form.dataNascimento))) {
-      Swal.fire(
-        "Data inválida",
-        "Informe uma data de nascimento válida.",
-        "warning"
-      );
-      return false;
-    }
-
-    return true;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const criarAluno = async (e) => {
+  const handleModalChange = (e) => {
+    const { name, value } = e.target;
+    setEditModalState((prev) => ({
+      ...prev,
+      data: { ...prev.data, [name]: value },
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validarCampos()) return;
+
+    const payload = { ...form };
+    if (!payload.dataNascimento) {
+        delete payload.dataNascimento;
+    }
+    if (!payload.telefone) {
+        delete payload.telefone;
+    }
+    if (!payload.endereco) {
+        delete payload.endereco;
+    }
 
     try {
-      await api.post("/alunos", form);
-      setForm({
-        nome: "",
-        endereco: "",
-        dataNascimento: "",
-        cpf: "",
-        matricula: "",
-        telefone: "",
-        email: "",
-        curso: "",
-      });
+      await alunoService.createAluno(payload);
+      setForm(initialFormState);
       Swal.fire("Sucesso!", "Aluno cadastrado com sucesso!", "success");
-      carregarAlunos();
+      loadAlunos();
     } catch (err) {
-      console.error("Erro completo:", err.response?.data); // Mostra os campos inválidos
       const erros = err.response?.data?.error;
-      if (Array.isArray(erros)) {
-        const mensagens = erros.map((e) => e.msg).join("<br>");
-        Swal.fire("Erro de validação", mensagens, "warning");
-      } else {
-        Swal.fire("Erro!", "Erro ao cadastrar aluno.", "error");
-      }
+      const mensagens = Array.isArray(erros)
+        ? erros.map((e) => e.msg).join("<br>")
+        : "Erro ao cadastrar aluno.";
+      Swal.fire("Erro de validação", mensagens, "warning");
     }
   };
 
-  const cancelarCriacao = () => {
-    Swal.fire("Cancelado", "Cadastro cancelado.", "info");
-    navigate("/dashboard");
+  const handleEdit = (aluno) => {
+    setEditModalState({ isOpen: true, data: aluno });
   };
 
-  const abrirEdicao = (aluno) => {
-    setEditando(aluno._id);
-    setEditData({
-      endereco: aluno.endereco || "",
-      telefone: aluno.telefone || "",
-      email: aluno.email || "",
-    });
+  const handleView = (aluno) => {
+    setViewModalState({ isOpen: true, data: aluno });
   };
 
-  const cancelarEdicao = () => {
-    setEditando(null);
-    setEditData({ endereco: "", telefone: "", email: "" });
-  };
-
-  const salvarEdicao = async () => {
-    try {
-      await api.put(`/alunos/${editando}`, editData);
-      Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
-      cancelarEdicao();
-      carregarAlunos();
-    } catch (err) {
-      Swal.fire("Erro!", "Erro ao salvar alterações.", "error");
-    }
-  };
-
-  const deletarAluno = async (id) => {
-    const confirm = await Swal.fire({
+  const handleDelete = async (id) => {
+    const { isConfirmed } = await Swal.fire({
       title: "Excluir aluno?",
       text: "Essa ação não poderá ser desfeita!",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Sim, excluir!",
-      cancelButtonText: "Cancelar",
     });
-
-    if (confirm.isConfirmed) {
+    if (isConfirmed) {
       try {
-        await api.delete(`/alunos/${id}`);
+        await alunoService.deleteAluno(id);
         Swal.fire("Excluído!", "Aluno removido com sucesso.", "success");
-        carregarAlunos();
-      } catch {
+        loadAlunos();
+      } catch (err) {
         Swal.fire("Erro!", "Erro ao excluir aluno.", "error");
       }
     }
   };
 
-  useEffect(() => {
-    carregarAlunos();
-  }, []);
+  const handleSave = async () => {
+    if (!editModalState.data) return;
 
-  const labels = {
-    nome: "Nome completo",
-    endereco: "Endereço",
-    dataNascimento: "Data de nascimento",
-    cpf: "CPF",
-    matricula: "Matrícula",
-    telefone: "Telefone",
-    email: "E-mail",
-    curso: "Curso",
+    const { _id, ...dataToUpdate } = editModalState.data;
+
+    // Clean up optional fields
+    if (!dataToUpdate.dataNascimento) {
+        delete dataToUpdate.dataNascimento;
+    }
+    if (!dataToUpdate.telefone) {
+        delete dataToUpdate.telefone;
+    }
+    if (!dataToUpdate.endereco) {
+        delete dataToUpdate.endereco;
+    }
+
+    try {
+      await alunoService.updateAluno(_id, dataToUpdate);
+      Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
+      setEditModalState({ isOpen: false, data: null });
+      loadAlunos();
+    } catch (err) {
+      const errorMsg = err.response?.data?.error?.[0]?.msg || "Erro ao salvar alterações.";
+      Swal.fire("Erro!", errorMsg, "error");
+    }
   };
 
+  const columns = [
+    { key: "matricula", header: "Matrícula" },
+    { key: "nome", header: "Nome" },
+    { key: "email", header: "Email" },
+  ];
+
+  const formFields = [
+    { name: "nome", label: "Nome completo", required: true },
+    { name: "cpf", label: "CPF", required: true },
+    { name: "matricula", label: "Matrícula", required: true },
+    { name: "email", label: "E-mail", type: "email", required: true },
+    { name: "curso", label: "Curso", required: true },
+    { name: "endereco", label: "Endereço", required: false },
+    { name: "dataNascimento", label: "Data de Nascimento", type: "date", required: false },
+    { name: "telefone", label: "Telefone", required: false },
+  ];
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <h2 className="text-2xl font-bold mb-6">Cadastro de Alunos</h2>
 
-      {/* Formulário */}
-      <form
-        onSubmit={criarAluno}
-        className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8"
-      >
-        {Object.entries(form).map(([key, value]) => (
-          <div key={key} className="flex flex-col">
-            <label className="text-sm font-semibold mb-1">
-              {labels[key] || key}
-            </label>
-            <input
-              type={key === "dataNascimento" ? "date" : "text"}
-              className="border p-2 rounded"
-              placeholder={labels[key]}
-              value={value}
-              onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 border rounded-lg">
+        {formFields.map((field) => (
+          <InputField
+            key={field.name}
+            label={field.label}
+            name={field.name}
+            type={field.type || "text"}
+            value={form[field.name]}
+            onChange={handleChange}
+            required={field.required}
+          />
         ))}
-        <div className="col-span-2 md:col-span-3 flex justify-end gap-4 mt-2">
-          <button
-            type="submit"
-            className="bg-green-600 text-white px-4 py-2 rounded"
-          >
-            Criar
-          </button>
-          <button
-            type="button"
-            onClick={cancelarCriacao}
-            className="bg-gray-600 text-white px-4 py-2 rounded"
-          >
+        <div className="md:col-span-3 flex justify-end gap-4 mt-2">
+          <Button type="button" className="secondary" onClick={() => navigate("/dashboard")}>
             Cancelar
-          </button>
+          </Button>
+          <Button type="submit" className="success">
+            Criar Aluno
+          </Button>
         </div>
       </form>
 
-      {/* Tabela de alunos */}
-      <div className="grid grid-cols-4 font-semibold border-b pb-2 mb-2">
-        <span>Matrícula</span>
-        <span>Nome</span>
-        <span>Email</span>
-        <span>Opções</span>
-      </div>
+      <Table
+        columns={columns}
+        data={alunos}
+        onView={handleView}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
-      <ul className="space-y-2">
-        {alunos.map((a) => (
-          <li
-            key={a._id}
-            className="grid grid-cols-4 border-b pb-2 items-center"
-          >
-            <span>{a.matricula}</span>
-            <span>{a.nome}</span>
-            <span>{a.email}</span>
-            <span className="space-x-2">
-              <button
-                onClick={() => abrirEdicao(a)}
-                className="text-blue-600 hover:underline"
-              >
-                ✏️
-              </button>
-              <button
-                onClick={() => deletarAluno(a._id)}
-                className="text-red-600 hover:underline"
-              >
-                🗑️
-              </button>
-            </span>
-          </li>
-        ))}
-      </ul>
-
-      {/* Modal de edição */}
-      {editando && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-10">
-          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
-            <h3 className="text-lg font-bold mb-4">Editar Aluno</h3>
-            <input
-              className="border p-2 mb-2 w-full rounded"
-              placeholder="Endereço"
-              value={editData.endereco}
-              onChange={(e) =>
-                setEditData({ ...editData, endereco: e.target.value })
-              }
+      <Modal
+        isOpen={editModalState.isOpen}
+        onClose={() => setEditModalState({ isOpen: false, data: null })}
+        onConfirm={handleSave}
+        title="Editar Aluno"
+      >
+        {editModalState.data && (
+          <div className="space-y-4">
+            <InputField
+              label="Endereço"
+              name="endereco"
+              value={editModalState.data.endereco}
+              onChange={handleModalChange}
             />
-            <input
-              className="border p-2 mb-4 w-full rounded"
-              placeholder="Telefone"
-              value={editData.telefone}
-              onChange={(e) =>
-                setEditData({ ...editData, telefone: e.target.value })
-              }
+            <InputField
+              label="Telefone"
+              name="telefone"
+              value={editModalState.data.telefone}
+              onChange={handleModalChange}
             />
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={cancelarEdicao}
-                className="bg-gray-400 text-white px-4 py-1 rounded"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={salvarEdicao}
-                className="bg-blue-600 text-white px-4 py-1 rounded"
-              >
-                Salvar
-              </button>
-            </div>
+             <InputField
+              label="E-mail"
+              name="email"
+              value={editModalState.data.email}
+              onChange={handleModalChange}
+            />
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={viewModalState.isOpen}
+        onClose={() => setViewModalState({ isOpen: false, data: null })}
+        onConfirm={() => setViewModalState({ isOpen: false, data: null })}
+        title="Visualizar Aluno"
+      >
+        {viewModalState.data && (
+          <div className="space-y-2">
+            {formFields.map(field => (
+              <div key={field.name}>
+                <span className="font-semibold">{field.label}: </span>
+                <span>{viewModalState.data[field.name]}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -33,6 +33,18 @@ exports.desalocar = async (req, res) => {
   }
 };
 
+exports.getAlunosDaDisciplina = async (req, res) => {
+  try {
+    const disciplinaId = req.params.id;
+    const alunos = await AlunoDisciplina.find({ disciplina: disciplinaId }).populate(
+      'aluno'
+    );
+    res.json(alunos);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getDisciplinasDoAluno = async (req, res) => {
   try {
     const alunoId = req.params.id;
@@ -62,6 +74,7 @@ exports.getDisciplinasPorMatricula = async (req, res) => {
         email: aluno.email,
       },
       disciplinas: disciplinas.map((d) => ({
+        _id: d.disciplina._id,
         nome: d.disciplina.nome,
         cargaHoraria: d.disciplina.cargaHoraria,
       })),
