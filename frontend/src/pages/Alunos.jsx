@@ -98,6 +98,17 @@ export default function Alunos() {
 
     const { _id, ...dataToUpdate } = editModalState.data;
 
+    // Clean up optional fields
+    if (!dataToUpdate.dataNascimento) {
+        delete dataToUpdate.dataNascimento;
+    }
+    if (!dataToUpdate.telefone) {
+        delete dataToUpdate.telefone;
+    }
+    if (!dataToUpdate.endereco) {
+        delete dataToUpdate.endereco;
+    }
+
     try {
       await alunoService.updateAluno(_id, dataToUpdate);
       Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
@@ -121,9 +132,9 @@ export default function Alunos() {
     { name: "matricula", label: "Matrícula", required: true },
     { name: "email", label: "E-mail", type: "email", required: true },
     { name: "curso", label: "Curso", required: true },
-    { name: "endereco", label: "Endereço" },
-    { name: "dataNascimento", label: "Data de Nascimento", type: "date" },
-    { name: "telefone", label: "Telefone" },
+    { name: "endereco", label: "Endereço", required: false },
+    { name: "dataNascimento", label: "Data de Nascimento", type: "date", required: false },
+    { name: "telefone", label: "Telefone", required: false },
   ];
 
   return (
