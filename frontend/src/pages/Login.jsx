@@ -50,8 +50,8 @@ export default function Login() {
           onChange={handleChange}
           required
         />
-        <Button type="submit" className="primary w-full">
-          Entrar
+        <Button type="submit" className="success w-full">
+          Login
         </Button>
       </form>
     </div>

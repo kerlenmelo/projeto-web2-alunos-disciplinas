@@ -22,7 +22,8 @@ export default function Alunos() {
   const navigate = useNavigate();
   const [alunos, setAlunos] = useState([]);
   const [form, setForm] = useState(initialFormState);
-  const [modalState, setModalState] = useState({ isOpen: false, data: null });
+  const [editModalState, setEditModalState] = useState({ isOpen: false, data: null });
+  const [viewModalState, setViewModalState] = useState({ isOpen: false, data: null });
 
   const loadAlunos = async () => {
     try {
@@ -44,7 +45,7 @@ export default function Alunos() {
 
   const handleModalChange = (e) => {
     const { name, value } = e.target;
-    setModalState((prev) => ({
+    setEditModalState((prev) => ({
       ...prev,
       data: { ...prev.data, [name]: value },
     }));
@@ -67,7 +68,11 @@ export default function Alunos() {
   };
 
   const handleEdit = (aluno) => {
-    setModalState({ isOpen: true, data: aluno });
+    setEditModalState({ isOpen: true, data: aluno });
+  };
+
+  const handleView = (aluno) => {
+    setViewModalState({ isOpen: true, data: aluno });
   };
 
   const handleDelete = async (id) => {
@@ -89,12 +94,13 @@ export default function Alunos() {
   };
 
   const handleSave = async () => {
-    if (!modalState.data) return;
-    const { _id, ...dataToUpdate } = modalState.data;
+    if (!editModalState.data) return;
+    const { _id, endereco, telefone, email } = editModalState.data;
+    const dataToUpdate = { endereco, telefone, email };
     try {
       await alunoService.updateAluno(_id, dataToUpdate);
       Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
-      setModalState({ isOpen: false, data: null });
+      setEditModalState({ isOpen: false, data: null });
       loadAlunos();
     } catch (err) {
       Swal.fire("Erro!", "Erro ao salvar alterações.", "error");
@@ -147,36 +153,55 @@ export default function Alunos() {
       <Table
         columns={columns}
         data={alunos}
+        onView={handleView}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
 
       <Modal
-        isOpen={modalState.isOpen}
-        onClose={() => setModalState({ isOpen: false, data: null })}
+        isOpen={editModalState.isOpen}
+        onClose={() => setEditModalState({ isOpen: false, data: null })}
         onConfirm={handleSave}
         title="Editar Aluno"
       >
-        {modalState.data && (
+        {editModalState.data && (
           <div className="space-y-4">
             <InputField
               label="Endereço"
               name="endereco"
-              value={modalState.data.endereco}
+              value={editModalState.data.endereco}
               onChange={handleModalChange}
             />
             <InputField
               label="Telefone"
               name="telefone"
-              value={modalState.data.telefone}
+              value={editModalState.data.telefone}
               onChange={handleModalChange}
             />
              <InputField
               label="E-mail"
               name="email"
-              value={modalState.data.email}
+              value={editModalState.data.email}
               onChange={handleModalChange}
             />
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={viewModalState.isOpen}
+        onClose={() => setViewModalState({ isOpen: false, data: null })}
+        onConfirm={() => setViewModalState({ isOpen: false, data: null })}
+        title="Visualizar Aluno"
+      >
+        {viewModalState.data && (
+          <div className="space-y-2">
+            {formFields.map(field => (
+              <div key={field.name}>
+                <span className="font-semibold">{field.label}: </span>
+                <span>{viewModalState.data[field.name]}</span>
+              </div>
+            ))}
           </div>
         )}
       </Modal>

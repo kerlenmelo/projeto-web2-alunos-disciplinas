@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { alunoService } from "../services/alunoService";
 import { disciplinaService } from "../services/disciplinaService";
 import { alunoDisciplinaService } from "../services/alunoDisciplinaService";
@@ -7,6 +8,7 @@ import Button from "../components/Button";
 import Table from "../components/Table";
 
 export default function AlocarDisciplinas() {
+  const navigate = useNavigate();
   const [alunos, setAlunos] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [selectedAluno, setSelectedAluno] = useState("");
@@ -128,6 +130,12 @@ export default function AlocarDisciplinas() {
           <Table columns={columns} data={disciplinasDoAluno} onDelete={handleDesalocar} />
         </div>
       )}
+
+      <div className="mt-6 text-center">
+        <Button className="secondary" onClick={() => navigate("/dashboard")}>
+            Voltar ao Dashboard
+        </Button>
+      </div>
     </div>
   );
 }

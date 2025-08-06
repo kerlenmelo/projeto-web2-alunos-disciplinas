@@ -1,6 +1,6 @@
 import Button from "./Button";
 
-export default function Table({ columns, data, onEdit, onDelete }) {
+export default function Table({ columns, data, onEdit, onDelete, onView }) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full bg-white">
@@ -11,7 +11,7 @@ export default function Table({ columns, data, onEdit, onDelete }) {
                 {col.header}
               </th>
             ))}
-            {(onEdit || onDelete) && (
+            {(onEdit || onDelete || onView) && (
               <th className="py-3 px-6 text-center">Ações</th>
             )}
           </tr>
@@ -27,9 +27,14 @@ export default function Table({ columns, data, onEdit, onDelete }) {
                   {row[col.key]}
                 </td>
               ))}
-              {(onEdit || onDelete) && (
+              {(onEdit || onDelete || onView) && (
                 <td className="py-3 px-6 text-center">
                   <div className="flex item-center justify-center gap-2">
+                    {onView && (
+                      <Button onClick={() => onView(row)} className="text-gray-600 hover:underline p-0">
+                        👁️
+                      </Button>
+                    )}
                     {onEdit && (
                       <Button onClick={() => onEdit(row)} className="text-blue-600 hover:underline p-0">
                         ✏️
