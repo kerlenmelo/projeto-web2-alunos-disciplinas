@@ -65,7 +65,8 @@ export default function Disciplinas() {
   const handleView = async (disciplina) => {
     try {
         const res = await alunoDisciplinaService.getAlunosDaDisciplina(disciplina._id);
-        setViewModalState({ isOpen: true, data: disciplina, alunos: res.data.map(item => item.aluno) });
+        const validAlunos = res.data.map(item => item.aluno).filter(Boolean);
+        setViewModalState({ isOpen: true, data: disciplina, alunos: validAlunos });
     } catch (err) {
         Swal.fire("Erro!", "Não foi possível carregar os alunos da disciplina.", "error");
     }
