@@ -53,8 +53,20 @@ export default function Alunos() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const payload = { ...form };
+    if (!payload.dataNascimento) {
+        delete payload.dataNascimento;
+    }
+    if (!payload.telefone) {
+        delete payload.telefone;
+    }
+    if (!payload.endereco) {
+        delete payload.endereco;
+    }
+
     try {
-      await alunoService.createAluno(form);
+      await alunoService.createAluno(payload);
       setForm(initialFormState);
       Swal.fire("Sucesso!", "Aluno cadastrado com sucesso!", "success");
       loadAlunos();
