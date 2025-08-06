@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../api/api";
-import ModalEditarAluno from "../components/ModalEditarAluno"; // Modal de Edição
-import ModalExcluirAluno from "../components/ModalExcluirAluno"; // Atualiza o nome para ModalExcluirAluno
+import { alunoDisciplinaService } from "../services/alunoDisciplinaService";
+import { alunoService } from "../services/alunoService";
+import Swal from "sweetalert2";
+import InputField from "../components/InputField";
+import Button from "../components/Button";
+import Table from "../components/Table";
+import Modal from "../components/Modal";
 
 export default function ConsultaMatricula() {
   const [matricula, setMatricula] = useState("");
@@ -10,189 +14,159 @@ export default function ConsultaMatricula() {
   const [disciplinas, setDisciplinas] = useState([]);
   const [erro, setErro] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showModalEditar, setShowModalEditar] = useState(false); // Controla a exibição do modal de edição
-  const [showModalExcluir, setShowModalExcluir] = useState(false); // Controla a exibição do modal de exclusão
+  const [modalState, setModalState] = useState({ isOpen: false, data: null });
   const navigate = useNavigate();
 
-  const consultar = async () => {
+  const handleConsultar = async () => {
     if (!matricula) {
       setErro("Por favor, insira uma matrícula válida.");
       return;
     }
-
     setErro("");
     setLoading(true);
-
+    setAluno(null);
+    setDisciplinas([]);
     try {
-      const res = await api.get(`/matricula/${matricula}`);
-      if (res.data) {
-        const { aluno, disciplinas } = res.data;
-        setAluno(aluno);
-        setDisciplinas(disciplinas);
-      } else {
-        setErro("Nenhuma disciplina encontrada para essa matrícula.");
-        setDisciplinas([]);
-      }
+      const res = await alunoDisciplinaService.getAlunoByMatricula(matricula);
+      setAluno(res.data.aluno);
+      setDisciplinas(res.data.disciplinas);
     } catch (error) {
       setErro("Aluno não encontrado ou erro ao buscar disciplinas.");
-      console.error("Erro ao consultar disciplinas:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConfirmDelete = () => {
-    setShowModalExcluir(true); // Exibe o modal de confirmação de exclusão
+  const handleEdit = () => {
+    setModalState({ isOpen: true, data: aluno });
   };
 
-  const handleCancelDelete = () => {
-    setShowModalExcluir(false); // Fecha o modal de confirmação de exclusão
-  };
-
-  // Função para excluir o aluno
-  const excluirAluno = async () => {
-    try {
-      await api.delete(`/alunos/${aluno._id}`); // Rota correta de exclusão
-      alert("Aluno excluído com sucesso");
-      navigate("/dashboard"); // Redireciona para o Dashboard após excluir
-    } catch (error) {
-      setErro("Erro ao excluir aluno");
-      console.error(error);
+  const handleDelete = async () => {
+    const { isConfirmed } = await Swal.fire({
+      title: "Excluir aluno?",
+      text: "Essa ação não poderá ser desfeita!",
+      icon: "warning",
+      showCancelButton: true,
+    });
+    if (isConfirmed) {
+      try {
+        await alunoService.deleteAluno(aluno._id);
+        Swal.fire("Excluído!", "Aluno removido com sucesso.", "success");
+        navigate("/dashboard");
+      } catch (err) {
+        Swal.fire("Erro!", "Erro ao excluir aluno.", "error");
+      }
     }
   };
+
+  const handleSave = async () => {
+    if (!modalState.data) return;
+    const { _id, ...dataToUpdate } = modalState.data;
+    try {
+      const res = await alunoService.updateAluno(_id, dataToUpdate);
+      Swal.fire("Atualizado!", "Dados alterados com sucesso.", "success");
+      setAluno(res.data.data);
+      setModalState({ isOpen: false, data: null });
+    } catch (err) {
+      Swal.fire("Erro!", "Erro ao salvar alterações.", "error");
+    }
+  };
+
+  const handleModalChange = (e) => {
+    const { name, value } = e.target;
+    setModalState((prev) => ({
+      ...prev,
+      data: { ...prev.data, [name]: value },
+    }));
+  };
+
+  const alunoColumns = [
+    { key: "nome", header: "Nome" },
+    { key: "matricula", header: "Matrícula" },
+    { key: "curso", header: "Curso" },
+    { key: "email", header: "Email" },
+  ];
+
+  const disciplinaColumns = [
+    { key: "nome", header: "Nome da Disciplina" },
+    { key: "cargaHoraria", header: "Carga Horária (h)" },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-10">
       <div className="w-full max-w-4xl bg-white shadow-lg rounded-lg p-6">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          Consultar Disciplinas por Matrícula
+          Consultar por Matrícula
         </h2>
 
-        <div className="space-y-4">
-          <div className="flex flex-col space-y-2">
-            <input
-              className="border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Digite a Matrícula"
-              value={matricula}
-              onChange={(e) => setMatricula(e.target.value)}
+        <div className="flex gap-2 mb-4">
+          <InputField
+            placeholder="Digite a Matrícula"
+            value={matricula}
+            onChange={(e) => setMatricula(e.target.value)}
+          />
+          <Button onClick={handleConsultar} className="primary" disabled={loading}>
+            {loading ? "Carregando..." : "Consultar"}
+          </Button>
+        </div>
+
+        {erro && <p className="text-red-500 text-center mb-4">{erro}</p>}
+
+        {aluno && (
+          <>
+            <h3 className="text-xl font-bold mb-4">Informações do Aluno</h3>
+            <Table
+              columns={alunoColumns}
+              data={[aluno]}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
-            <button
-              onClick={consultar}
-              className="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={loading}
-            >
-              {loading ? "Carregando..." : "Consultar"}
-            </button>
+          </>
+        )}
+
+        {disciplinas.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-xl font-bold mb-4">Disciplinas Associadas</h3>
+            <Table columns={disciplinaColumns} data={disciplinas} />
           </div>
+        )}
 
-          {erro && <p className="text-red-500 text-center">{erro}</p>}
-
-          {aluno && (
-            <div className="mt-4">
-              <h3 className="font-semibold text-lg text-gray-700">
-                Informações do Aluno
-              </h3>
-              <table className="min-w-full table-auto mt-2 border-collapse border border-gray-300">
-                <thead>
-                  <tr>
-                    <th className="border-b px-4 py-2 text-left">Nome</th>
-                    <th className="border-b px-4 py-2 text-left">Matrícula</th>
-                    <th className="border-b px-4 py-2 text-left">Curso</th>
-                    <th className="border-b px-4 py-2 text-left">Email</th>
-                    <th className="border-b px-4 py-2 text-left">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="border-b px-4 py-2">{aluno.nome}</td>
-                    <td className="border-b px-4 py-2">{aluno.matricula}</td>
-                    <td className="border-b px-4 py-2">{aluno.curso}</td>
-                    <td className="border-b px-4 py-2">{aluno.email}</td>
-                    <td className="border-b px-4 py-2">
-                      <button
-                        onClick={() => setShowModalEditar(true)} // Abre o modal de edição
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={handleConfirmDelete} // Abre o modal de confirmação de exclusão
-                        className="ml-4 text-red-600 hover:text-red-800"
-                      >
-                        Excluir
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {disciplinas.length > 0 ? (
-            <div className="mt-6">
-              <h3 className="font-semibold text-lg text-gray-700">
-                Disciplinas Associadas
-              </h3>
-              <table className="min-w-full table-auto mt-2 border-collapse border border-gray-300">
-                <thead>
-                  <tr>
-                    <th className="border-b px-4 py-2 text-left">
-                      Nome da Disciplina
-                    </th>
-                    <th className="border-b px-4 py-2 text-left">
-                      Carga Horária
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {disciplinas.map((d, index) => (
-                    <tr key={index}>
-                      <td className="border-b px-4 py-2">{d.nome}</td>
-                      <td className="border-b px-4 py-2">{d.cargaHoraria}h</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            !erro && (
-              <p className="text-gray-500 mt-4 text-center">
-                Nenhuma disciplina encontrada.
-              </p>
-            )
-          )}
-
-          <div className="mt-6 text-center">
-            <Link
-              to="/dashboard"
-              className="bg-gray-600 text-white p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              Voltar ao Dashboard
-            </Link>
-          </div>
+        <div className="mt-6 text-center">
+          <Link to="/dashboard">
+            <Button className="secondary">Voltar ao Dashboard</Button>
+          </Link>
         </div>
       </div>
 
-      {/* Modal de Edição */}
-      {showModalEditar && (
-        <ModalEditarAluno
-          aluno={aluno}
-          onClose={() => setShowModalEditar(false)} // Fecha o modal de edição
-          onSave={(updatedAluno) => {
-            // Salva as atualizações no aluno
-            console.log(updatedAluno);
-            setShowModalEditar(false);
-          }}
-        />
-      )}
-
-      {/* Modal de Confirmação de Exclusão */}
-      {showModalExcluir && (
-        <ModalExcluirAluno
-          onConfirm={excluirAluno}
-          onCancel={handleCancelDelete}
-        />
-      )}
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={() => setModalState({ isOpen: false, data: null })}
+        onConfirm={handleSave}
+        title="Editar Aluno"
+      >
+        {modalState.data && (
+          <div className="space-y-4">
+            <InputField
+              label="Endereço"
+              name="endereco"
+              value={modalState.data.endereco}
+              onChange={handleModalChange}
+            />
+            <InputField
+              label="Telefone"
+              name="telefone"
+              value={modalState.data.telefone}
+              onChange={handleModalChange}
+            />
+             <InputField
+              label="E-mail"
+              name="email"
+              value={modalState.data.email}
+              onChange={handleModalChange}
+            />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
